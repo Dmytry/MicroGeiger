@@ -112,7 +112,7 @@ public class MicroGeigerApp extends Application {
 			            		double raw_v=data[i]*(1.0/32768.0);
 			            		running_avg=running_avg*(1.0-running_avg_const)+raw_v*running_avg_const;
 			            		double v=raw_v-running_avg;
-			            		if(v>threshold){
+			            		if(v>threshold || v<-threshold){
 			            			if(dead_counter<=0){
 			            				total_count++;
 			            				sample_count++;
