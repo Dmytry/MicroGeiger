@@ -139,16 +139,20 @@ public class MicroGeigerApp extends Application {
 		}
 	}
     
-    static Listener listener;
-    static Thread listener_thread;
+    Listener listener;
+    Thread listener_thread;
+    
+    void init_counters(){
+    	counters=new Counter[4];
+    	counters[0]=new Counter(counters_update_rate*5, 12.0, " CPM in last 5 sec");
+    	counters[1]=new Counter(counters_update_rate*30, 2.0, " CPM in last 30 sec");
+    	counters[2]=new Counter(counters_update_rate*120, 0.5, " CPM in last 2 min");
+    	counters[3]=new Counter(counters_update_rate*600, 0.1, " CPM in last 10 min");
+    }
     
     void start(){
-    	if(!started){
-	    	counters=new Counter[4];
-	    	counters[0]=new Counter(counters_update_rate*5, 12.0, " CPM in last 5 sec");
-	    	counters[1]=new Counter(counters_update_rate*30, 2.0, " CPM in last 30 sec");
-	    	counters[2]=new Counter(counters_update_rate*120, 0.5, " CPM in last 2 min");
-	    	counters[3]=new Counter(counters_update_rate*600, 0.1, " CPM in last 10 min");
+    	if(!started){	    	
+	    	init_counters();
 	    	if(listener_thread==null){
 		        listener=new Listener();
 		        listener_thread=new Thread(listener);
@@ -157,10 +161,22 @@ public class MicroGeigerApp extends Application {
 	    	started=true;
     	}
     }
+    void reset(){
+    	total_count=0;
+    	init_counters();
+    	changed=true;
+    }
     void stop(){
     	if(listener!=null){
     		listener.do_stop=true;
     		listener_thread.interrupt();
+    		try {
+				listener_thread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    		listener_thread=null;
     	}  
     	started=false;
     }

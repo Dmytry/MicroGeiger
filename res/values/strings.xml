@@ -10,5 +10,6 @@
     <string name="threshold_summary">Signal threshold for counting</string>
     <string name="dead_time">Dead time (ms)</string>
     <string name="dead_time_summary">Do not register next counts for that time in milliseconds</string>
+    <string name="action_reset">Reset</string>
 
 </resources>

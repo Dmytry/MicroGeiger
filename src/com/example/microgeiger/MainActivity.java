@@ -57,6 +57,9 @@ public class MainActivity extends Activity {
             	app.stop();
             	finish();
                 return true;
+            case R.id.action_reset:
+            	app.reset();
+                return true;
             case R.id.action_settings:
             	Intent i = new Intent(this, SettingsActivity.class);
     			startActivityForResult(i, RESULT_SETTINGS);

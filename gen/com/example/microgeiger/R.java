@@ -25,6 +25,7 @@ public final class R {
     }
     public static final class id {
         public static final int action_quit=0x7f090001;
+        public static final int action_reset=0x7f090002;
         public static final int action_settings=0x7f090000;
     }
     public static final class layout {
@@ -35,6 +36,7 @@ public final class R {
     }
     public static final class string {
         public static final int action_quit=0x7f060003;
+        public static final int action_reset=0x7f060009;
         public static final int action_settings=0x7f060001;
         public static final int app_name=0x7f060000;
         public static final int dead_time=0x7f060007;
