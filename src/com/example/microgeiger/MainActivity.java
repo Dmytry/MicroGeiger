@@ -69,6 +69,7 @@ public class MainActivity extends Activity {
     }
     
     class Panel extends android.view.View {
+    	DecimalFormat decim = new DecimalFormat("0000.0");
     	public Panel(Context context) {
 			super(context);
 			// TODO Auto-generated constructor stub
@@ -82,8 +83,7 @@ public class MainActivity extends Activity {
     		int ypos=50;
     		int ydelta=60;
     		canvas.drawText(Integer.toString(app.total_count)+" total", 10, ypos, p);
-    		ypos+=ydelta;
-    		DecimalFormat decim = new DecimalFormat("0.0");
+    		ypos+=ydelta;    		
     		for(int i=0;i<app.counters.length;++i){
     			canvas.drawText(decim.format(app.counters[i].getValue())+" "+app.counters[i].name, 10, ypos, p);
     			ypos+=ydelta;

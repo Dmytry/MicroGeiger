@@ -72,7 +72,7 @@ public class MicroGeigerApp extends Application {
 			            			}
 			            			sample_update_counter=0;
 			            			sample_count=0;
-			            			Log.d(TAG, "got a sample");
+			            			//Log.d(TAG, "got a sample");
 			            		}
 			            		double raw_v=data[i]*(1.0/32768.0);
 			            		running_avg=running_avg*(1.0-running_avg_const)+raw_v*running_avg_const;
