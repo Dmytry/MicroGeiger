@@ -25,11 +25,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.Window;
 import android.widget.TextView;
 
@@ -39,6 +41,7 @@ public class MainActivity extends Activity {
 	int old_count=-1;
 	Panel panel;
 	MicroGeigerApp app;
+	private static final int RESULT_SETTINGS = 1;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -46,6 +49,35 @@ public class MainActivity extends Activity {
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.action_quit:
+            	app.stop();
+            	finish();
+                return true;
+            case R.id.action_settings:
+            	Intent i = new Intent(this, SettingsActivity.class);
+    			startActivityForResult(i, RESULT_SETTINGS);
+    			return true;            	
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    
+    @Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+
+		switch (requestCode) {
+		case RESULT_SETTINGS:
+			//showUserSettings();
+			break;
+
+		}
+
+	}
     
 
     @Override
@@ -58,19 +90,17 @@ public class MainActivity extends Activity {
         handler=new Handler();     
                         
         app=(MicroGeigerApp) getApplication();
+        app.start();
         
         Runnable runnable = new Runnable() {
             @Override
             public void run() {            	
                 if (!stop_handler) {
-                	/*
-                	if(old_count!=app.total_count){
-	            		//TextView text = (TextView) findViewById(R.id.count_total);
-        				//text.setText(Integer.toString(app.count));
-                		panel.invalidate();
-	            	}*/
-                	panel.invalidate();
-                    handler.postDelayed(this, 500);
+                	if(app.changed){
+                		panel.invalidate();                		
+                		app.changed=false;
+                	}
+                	handler.postDelayed(this, 100);
                 }
             }
         };
@@ -88,7 +118,6 @@ public class MainActivity extends Activity {
     	DecimalFormat decim = new DecimalFormat("0000.0");
     	public Panel(Context context) {
 			super(context);
-			// TODO Auto-generated constructor stub
 		}
 
 		public void RedrawControl(android.graphics.Canvas canvas){
@@ -104,25 +133,11 @@ public class MainActivity extends Activity {
     			canvas.drawText(decim.format(app.counters[i].getValue())+" "+app.counters[i].name, 10, ypos, p);
     			ypos+=ydelta;
     		}
-    		
-    		/*
-    		float y0=canvas.getHeight()-300;
-    		float y1=canvas.getHeight()-100;
-    		float w=130;
-    		float margin=2;
-    		p.setColor(motor1?Color.WHITE:Color.BLACK);
-    		canvas.drawRect(canvas.getWidth()-w+margin,y0,canvas.getWidth(),y1,p);
-    		p.setColor(motor2?Color.WHITE:Color.BLACK);
-    		canvas.drawRect(canvas.getWidth()-2*w+margin,y0,canvas.getWidth()-w,y1,p);
-    		*/
     	}
 
 		@Override
 		public void onDraw(android.graphics.Canvas canvas){
 			canvas.drawColor(Color.BLACK);
-			//Paint my_paint=new Paint();
-			//my_paint.setColor(Color.RED);
-			//canvas.drawRect(0,0,100,100,my_paint);
 			RedrawControl(canvas);
 		}
     }

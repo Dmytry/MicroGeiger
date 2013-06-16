@@ -18,10 +18,13 @@
 package com.example.microgeiger;
 
 import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.TextView;
@@ -30,8 +33,10 @@ public class MicroGeigerApp extends Application {
 	private static final String TAG = "MicroGeiger";
 	public volatile int total_count=0;
 	public final int sample_rate=44100;
-	public final int counters_update_rate=1;/// sample rate must be divisible by counters update rate
-	public final int samples_per_update=44100;
+	public final int counters_update_rate=2;/// sample rate must be divisible by counters update rate
+	public final int samples_per_update=sample_rate/counters_update_rate;
+	public volatile boolean changed=false;
+	boolean started=false;
 	public class Counter{
 		public int counts[];
 		public int pos=0;		
@@ -46,23 +51,25 @@ public class MicroGeigerApp extends Application {
 		public void push(int n){			
 			pos=pos+1;
 			if(pos>=counts.length)pos=0;
+			int old_count=count;
 			count-=counts[pos];
 			counts[pos]=n;
 			count+=n;
+			if(count!=old_count)changed=true;
 		}
 		double getValue(){
 			return scale*count;
 		}
 	}
-	volatile Counter counters[];
+	public volatile Counter counters[];
   
     private class Listener implements Runnable{
     	public volatile boolean do_stop=false;
 		@Override
 		public void run() {	
 			AudioRecord recorder;			
-			final int dead_time=sample_rate/2000;
-			final double threshold=0.1;
+			int dead_time=sample_rate/2000;
+			double threshold=0.1;
 			double running_avg=0.0;
 			double running_avg_const=0.0001;
 			int dead_counter=0;
@@ -72,12 +79,23 @@ public class MicroGeigerApp extends Application {
 			short data[]=new short[data_size];
 			recorder=new AudioRecord (AudioSource.MIC, sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, data_size);
 			try{
-			    while(!do_stop){			    	
+			    while(!do_stop){
+			    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+			    	try{
+			    		threshold=Double.parseDouble(prefs.getString("threshold", ""));
+			    	}catch(NumberFormatException e){			    	
+			    	}
+			    	try{
+			    		dead_time=(int)(0.001*sample_rate*Double.parseDouble(prefs.getString("dead_time", "")));
+			    	}catch(NumberFormatException e){			    	
+			    	}
+			    	
 			    	if (recorder.getState()==android.media.AudioRecord.STATE_INITIALIZED){ // check to see if the recorder has initialized yet.
 			            if (recorder.getRecordingState()==android.media.AudioRecord.RECORDSTATE_STOPPED){
 			                 recorder.startRecording();
 			            }else{
 			            	int read_size=recorder.read(data,0,data_size);
+			            	int old_total_count=total_count;
 			            	for(int i=0; i<read_size; ++i){
 			            		if(dead_counter>0){
 			            			dead_counter--;			            			
@@ -102,7 +120,8 @@ public class MicroGeigerApp extends Application {
 			            				
 			            			}		            			
 			            		}
-			            	}			            	
+			            	}
+			            	if(old_total_count!=total_count)changed=true;
 				    	}
 			    	}else{
 				    	Log.d(TAG, "failed to initialize audio");
@@ -124,22 +143,26 @@ public class MicroGeigerApp extends Application {
     static Thread listener_thread;
     
     void start(){
-    	counters=new Counter[4];
-    	counters[0]=new Counter(counters_update_rate*5, 12.0, " CPM in last 5 sec");
-    	counters[1]=new Counter(counters_update_rate*30, 2.0, " CPM in last 30 sec");
-    	counters[2]=new Counter(counters_update_rate*120, 0.5, " CPM in last 2 min");
-    	counters[3]=new Counter(counters_update_rate*600, 0.1, " CPM in last 10 min");
-    	if(listener_thread==null){
-	        listener=new Listener();
-	        listener_thread=new Thread(listener);
-	        listener_thread.start();
-        }
+    	if(!started){
+	    	counters=new Counter[4];
+	    	counters[0]=new Counter(counters_update_rate*5, 12.0, " CPM in last 5 sec");
+	    	counters[1]=new Counter(counters_update_rate*30, 2.0, " CPM in last 30 sec");
+	    	counters[2]=new Counter(counters_update_rate*120, 0.5, " CPM in last 2 min");
+	    	counters[3]=new Counter(counters_update_rate*600, 0.1, " CPM in last 10 min");
+	    	if(listener_thread==null){
+		        listener=new Listener();
+		        listener_thread=new Thread(listener);
+		        listener_thread.start();
+	        }
+	    	started=true;
+    	}
     }
     void stop(){
     	if(listener!=null){
     		listener.do_stop=true;
     		listener_thread.interrupt();
-    	}    
+    	}  
+    	started=false;
     }
     @Override
 	public void onCreate() {    	

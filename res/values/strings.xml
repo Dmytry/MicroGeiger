@@ -4,5 +4,11 @@
     <string name="app_name">MicroGeiger</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
+    <string name="action_quit">Quit</string>
+    <string name="threshold">Threshold</string>
+    <string name="threshold_key">threshold_key</string>
+    <string name="threshold_summary">Signal threshold for counting</string>
+    <string name="dead_time">Dead time (ms)</string>
+    <string name="dead_time_summary">Do not register next counts for that time in milliseconds</string>
 
 </resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <EditTextPreference android:title="@string/threshold" android:defaultValue="0.1" android:inputType="numberDecimal" android:key="threshold" android:persistent="true" android:summary="@string/threshold_summary"/>
+    <EditTextPreference android:title="@string/dead_time" android:defaultValue="0.5" android:inputType="numberDecimal" android:summary="@string/dead_time_summary" android:key="dead_time" android:persistent="true"/>
+    
+
+</PreferenceScreen>
