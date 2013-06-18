@@ -21,7 +21,9 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaRecorder.AudioSource;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -72,12 +74,39 @@ public class MicroGeigerApp extends Application {
 			double threshold=0.1;
 			double running_avg=0.0;
 			double running_avg_const=0.0001;
-			int dead_counter=0;
+			int dead_countdown=0;
+			int click_countdown=0;
+			
+			int click_duration=40;
+			int click_beep_divisor=10;
+			
 			int sample_update_counter=0;
 			int sample_count=0;
-			int data_size=Math.max(sample_rate/5, AudioRecord.getMinBufferSize(sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT));
+			int record_min_buffer_size=AudioRecord.getMinBufferSize(sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+			int play_min_buffer_size=AudioTrack.getMinBufferSize(sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+			int min_buffer_size=Math.max(record_min_buffer_size, play_min_buffer_size);
+			
+			int data_size=Math.max(sample_rate/20, record_min_buffer_size);
 			short data[]=new short[data_size];
+			short playback_data[]=new short[data_size];
 			recorder=new AudioRecord (AudioSource.MIC, sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, data_size);
+			
+			final int play_sample_rate=44100;
+			final short geiger_beep[]=new short[10];
+			for(int i=0;i<geiger_beep.length;++i){
+				if((i/2)%2==1){
+					geiger_beep[i]=32767;
+				}else{
+					geiger_beep[i]=-32767;
+				}
+			}
+			
+			final AudioTrack player = new AudioTrack(AudioManager.STREAM_RING,
+					sample_rate, AudioFormat.CHANNEL_CONFIGURATION_MONO,
+	                AudioFormat.ENCODING_PCM_16BIT, data_size,
+	                AudioTrack.MODE_STREAM);
+	        player.play();
+			
 			try{
 			    while(!do_stop){
 			    	SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -94,11 +123,19 @@ public class MicroGeigerApp extends Application {
 			            if (recorder.getRecordingState()==android.media.AudioRecord.RECORDSTATE_STOPPED){
 			                 recorder.startRecording();
 			            }else{
-			            	int read_size=recorder.read(data,0,data_size);
+			            	int read_size=recorder.read(data,0,data_size);      	
+			            	
+			            	
 			            	int old_total_count=total_count;
 			            	for(int i=0; i<read_size; ++i){
-			            		if(dead_counter>0){
-			            			dead_counter--;			            			
+			            		if(dead_countdown>0){
+			            			dead_countdown--;		            			
+			            		}
+			            		if(click_countdown>0){
+			            			click_countdown--;
+			            			playback_data[i]=(short) ((click_countdown/click_beep_divisor)%2 == 1 ? 32767:-32767);
+			            		}else{
+			            			playback_data[i]=0;
 			            		}
 			            		sample_update_counter++;
 			            		if(sample_update_counter>=samples_per_update){
@@ -113,15 +150,18 @@ public class MicroGeigerApp extends Application {
 			            		running_avg=running_avg*(1.0-running_avg_const)+raw_v*running_avg_const;
 			            		double v=raw_v-running_avg;
 			            		if(v>threshold || v<-threshold){
-			            			if(dead_counter<=0){
+			            			if(dead_countdown<=0){
 			            				total_count++;
 			            				sample_count++;
-			            				dead_counter=dead_time;
-			            				
+			            				dead_countdown=dead_time;
+			            				click_countdown=click_duration;
 			            			}		            			
 			            		}
 			            	}
-			            	if(old_total_count!=total_count)changed=true;
+			            	if(old_total_count!=total_count){
+			            		changed=true;			            		
+			            	}
+			            	player.write(playback_data,0,read_size);
 				    	}
 			    	}else{
 				    	Log.d(TAG, "failed to initialize audio");
@@ -135,6 +175,8 @@ public class MicroGeigerApp extends Application {
 		    finally{
 		    	recorder.stop();
 		    	recorder.release();
+		    	player.stop();
+		    	player.release();
 		    }
 		}
 	}
