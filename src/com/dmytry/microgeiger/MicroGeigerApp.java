@@ -74,6 +74,7 @@ public class MicroGeigerApp extends Application {
 			double threshold=0.1;
 			double running_avg=0.0;
 			double running_avg_const=0.0001;
+			float click_volume=1.0f;
 			int dead_countdown=0;
 			int click_countdown=0;
 			
@@ -86,23 +87,14 @@ public class MicroGeigerApp extends Application {
 			int play_min_buffer_size=AudioTrack.getMinBufferSize(sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
 			int min_buffer_size=Math.max(record_min_buffer_size, play_min_buffer_size);
 			
-			int data_size=Math.max(sample_rate/20, record_min_buffer_size);
+			int data_size=Math.max(sample_rate/20, min_buffer_size);
 			short data[]=new short[data_size];
 			short playback_data[]=new short[data_size];
 			recorder=new AudioRecord (AudioSource.MIC, sample_rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, data_size);
 			
-			final int play_sample_rate=44100;
-			final short geiger_beep[]=new short[10];
-			for(int i=0;i<geiger_beep.length;++i){
-				if((i/2)%2==1){
-					geiger_beep[i]=32767;
-				}else{
-					geiger_beep[i]=-32767;
-				}
-			}
 			
 			final AudioTrack player = new AudioTrack(AudioManager.STREAM_RING,
-					sample_rate, AudioFormat.CHANNEL_CONFIGURATION_MONO,
+					sample_rate, AudioFormat.CHANNEL_OUT_MONO,
 	                AudioFormat.ENCODING_PCM_16BIT, data_size,
 	                AudioTrack.MODE_STREAM);
 	        player.play();
@@ -119,6 +111,12 @@ public class MicroGeigerApp extends Application {
 			    	}catch(NumberFormatException e){			    	
 			    	}
 			    	
+			    	try{
+			    		click_volume=Float.parseFloat(prefs.getString("click_volume", "1.0"));
+			    	}catch(NumberFormatException e){			    	
+			    	}  	
+			    	
+			    	
 			    	if (recorder.getState()==android.media.AudioRecord.STATE_INITIALIZED){ // check to see if the recorder has initialized yet.
 			            if (recorder.getRecordingState()==android.media.AudioRecord.RECORDSTATE_STOPPED){
 			                 recorder.startRecording();
@@ -133,7 +131,7 @@ public class MicroGeigerApp extends Application {
 			            		}
 			            		if(click_countdown>0){
 			            			click_countdown--;
-			            			playback_data[i]=(short) ((click_countdown/click_beep_divisor)%2 == 1 ? 32767:-32767);
+			            			playback_data[i]=(short) (Math.exp((click_volume-1.0)*Math.log(10000))*((click_countdown/click_beep_divisor)%2 == 1 ? 32767:-32767));
 			            		}else{
 			            			playback_data[i]=0;
 			            		}
@@ -161,7 +159,7 @@ public class MicroGeigerApp extends Application {
 			            	if(old_total_count!=total_count){
 			            		changed=true;			            		
 			            	}
-			            	player.write(playback_data,0,read_size);
+			            	if(click_volume>0.001)player.write(playback_data,0,read_size);
 				    	}
 			    	}else{
 				    	Log.d(TAG, "failed to initialize audio");

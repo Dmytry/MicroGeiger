@@ -55,7 +55,8 @@
 	        android:layout_alignParentBottom="true"
 	        android:layout_width="fill_parent"
 	        android:layout_height="wrap_content"
-	        android:layout_below="@android:id/summary">
+	        android:layout_below="@android:id/summary"
+	        android:orientation="horizontal">
 	</LinearLayout>
 	
 </RelativeLayout>

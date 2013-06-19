@@ -1,4 +1,4 @@
-package com.dmytry.microgeiger;
+package com.robobunny;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -14,6 +14,7 @@ import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import com.dmytry.microgeiger.R;
+import java.lang.*;
 
 public class SeekBarPreference extends Preference implements OnSeekBarChangeListener {
 	
@@ -23,10 +24,10 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 	private static final String ROBOBUNNYNS="http://robobunny.com";
 	private static final int DEFAULT_VALUE = 50;
 	
-	private int mMaxValue      = 100;
-	private int mMinValue      = 0;
-	private int mInterval      = 1;
-	private int mCurrentValue;
+	private float mMaxValue      = 1;
+	private float mMinValue      = 0;
+	private float mInterval      = 0.01f;
+	private float mCurrentValue;
 	private String mUnitsLeft  = "";
 	private String mUnitsRight = "";
 	private SeekBar mSeekBar;
@@ -46,13 +47,13 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 	private void initPreference(Context context, AttributeSet attrs) {
 		setValuesFromXml(attrs);
 		mSeekBar = new SeekBar(context, attrs);
-		mSeekBar.setMax(mMaxValue - mMinValue);
+		mSeekBar.setMax((int) ((mMaxValue - mMinValue)/mInterval));
 		mSeekBar.setOnSeekBarChangeListener(this);
 	}
 	
 	private void setValuesFromXml(AttributeSet attrs) {
-		mMaxValue = attrs.getAttributeIntValue(ANDROIDNS, "max", 100);
-		mMinValue = attrs.getAttributeIntValue(ROBOBUNNYNS, "min", 0);
+		mMaxValue = attrs.getAttributeFloatValue(ROBOBUNNYNS, "max", 1.0f);
+		mMinValue = attrs.getAttributeFloatValue(ROBOBUNNYNS, "min", 0.0f);
 		
 		mUnitsLeft = getAttributeStringValue(attrs, ROBOBUNNYNS, "unitsLeft", "");
 		String units = getAttributeStringValue(attrs, ROBOBUNNYNS, "units", "");
@@ -61,7 +62,7 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 		try {
 			String newInterval = attrs.getAttributeValue(ROBOBUNNYNS, "interval");
 			if(newInterval != null)
-				mInterval = Integer.parseInt(newInterval);
+				mInterval = Float.parseFloat(newInterval);
 		}
 		catch(Exception e) {
 			Log.e(TAG, "Invalid interval value", e);
@@ -137,7 +138,7 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 			mStatusText.setText(String.valueOf(mCurrentValue));
 			mStatusText.setMinimumWidth(30);
 			
-			mSeekBar.setProgress(mCurrentValue - mMinValue);
+			mSeekBar.setProgress((int) ((mCurrentValue - mMinValue)/mInterval));
 
 			TextView unitsRight = (TextView)layout.findViewById(R.id.seekBarPrefUnitsRight);
 			unitsRight.setText(mUnitsRight);
@@ -154,25 +155,24 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 	
 	@Override
 	public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-		int newValue = progress + mMinValue;
+		float newValue = (progress + mMinValue)*mInterval;
 		
 		if(newValue > mMaxValue)
 			newValue = mMaxValue;
 		else if(newValue < mMinValue)
 			newValue = mMinValue;
-		else if(mInterval != 1 && newValue % mInterval != 0)
-			newValue = Math.round(((float)newValue)/mInterval)*mInterval;  
+		
 		
 		// change rejected, revert to the previous value
 		if(!callChangeListener(newValue)){
-			seekBar.setProgress(mCurrentValue - mMinValue); 
+			seekBar.setProgress((int)((mCurrentValue - mMinValue)/mInterval)); 
 			return; 
 		}
 
 		// change accepted, store it
 		mCurrentValue = newValue;
 		mStatusText.setText(String.valueOf(newValue));
-		persistInt(newValue);
+		persistString(Float.toString((newValue)));
 
 	}
 
@@ -188,7 +188,7 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 	@Override 
 	protected Object onGetDefaultValue(TypedArray ta, int index){
 		
-		int defaultValue = ta.getInt(index, DEFAULT_VALUE);
+		float defaultValue = ta.getFloat(index, DEFAULT_VALUE);
 		return defaultValue;
 		
 	}
@@ -197,18 +197,25 @@ public class SeekBarPreference extends Preference implements OnSeekBarChangeList
 	protected void onSetInitialValue(boolean restoreValue, Object defaultValue) {
 
 		if(restoreValue) {
-			mCurrentValue = getPersistedInt(mCurrentValue);
+			try{			
+				mCurrentValue = getPersistedFloat(mCurrentValue);
+			}catch(ClassCastException ex){
+				try{
+					mCurrentValue=Float.parseFloat(getPersistedString(""));
+		    	}catch(NumberFormatException e){			    	
+		    	}
+			}
 		}
 		else {
-			int temp = 0;
+			float temp = 0;
 			try {
-				temp = (Integer)defaultValue;
+				temp = (Float)defaultValue;
 			}
 			catch(Exception ex) {
 				Log.e(TAG, "Invalid default value: " + defaultValue.toString());
 			}
 			
-			persistInt(temp);
+			persistString(Float.toString(temp));
 			mCurrentValue = temp;
 		}
 		

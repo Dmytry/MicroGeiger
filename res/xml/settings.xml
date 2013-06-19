@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+<PreferenceScreen 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:robobunny="http://robobunny.com" >
     <EditTextPreference android:title="@string/threshold" android:defaultValue="0.1" android:inputType="numberDecimal" android:key="threshold" android:persistent="true" android:summary="@string/threshold_summary"/>
     <EditTextPreference android:title="@string/dead_time" android:defaultValue="0.5" android:inputType="numberDecimal" android:summary="@string/dead_time_summary" android:key="dead_time" android:persistent="true"/>
-    
+    <com.robobunny.SeekBarPreference android:key="click_volume" 
+        android:title="@string/click_volume" android:summary="@string/click_volume_summary" 
+        android:defaultValue="1.0" robobunny:max="1.0" robobunny:min="0.0" 
+        robobunny:unitsLeft="" robobunny:unitsRight=""/>
 
 </PreferenceScreen>
