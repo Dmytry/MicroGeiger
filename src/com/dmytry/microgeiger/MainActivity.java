@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License along with MicroGeiger. 
     If not, see http://www.gnu.org/licenses/.
 */
-package com.example.microgeiger;
+package com.dmytry.microgeiger;
 
 import java.text.DecimalFormat;
 
@@ -34,6 +34,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
 import android.widget.TextView;
+import com.dmytry.microgeiger.R;
 
 public class MainActivity extends Activity {
 	Handler handler;

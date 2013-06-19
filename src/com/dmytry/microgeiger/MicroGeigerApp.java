@@ -15,7 +15,7 @@
     If not, see http://www.gnu.org/licenses/.
 */
 
-package com.example.microgeiger;
+package com.dmytry.microgeiger;
 
 import android.app.Application;
 import android.content.Context;
