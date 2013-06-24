@@ -15,7 +15,8 @@
         android:theme="@style/AppTheme" android:name="com.dmytry.microgeiger.MicroGeigerApp">
         <activity
             android:name="com.dmytry.microgeiger.MainActivity"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

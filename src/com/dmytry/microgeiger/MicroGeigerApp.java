@@ -36,9 +36,15 @@ public class MicroGeigerApp extends Application {
 	public volatile int total_count=0;
 	public final int sample_rate=44100;
 	public final int counters_update_rate=2;/// sample rate must be divisible by counters update rate
+	
+	public final int log_interval=5*sample_rate;/// logging interval in samples
+	public java.util.Vector<Integer> counts_log=new java.util.Vector<Integer>();
+	public int log_countdown=0, log_interval_click_count=0;
+	
 	public final int samples_per_update=sample_rate/counters_update_rate;
 	public volatile boolean changed=false;
 	boolean started=false;
+	boolean connected=false;
 	public class Counter{
 		public int counts[];
 		public int pos=0;		
@@ -64,6 +70,7 @@ public class MicroGeigerApp extends Application {
 		}
 	}
 	public volatile Counter counters[];
+	
   
     private class Listener implements Runnable{
     	public volatile boolean do_stop=false;
@@ -121,45 +128,61 @@ public class MicroGeigerApp extends Application {
 			            if (recorder.getRecordingState()==android.media.AudioRecord.RECORDSTATE_STOPPED){
 			                 recorder.startRecording();
 			            }else{
-			            	int read_size=recorder.read(data,0,data_size);      	
-			            	
-			            	
-			            	int old_total_count=total_count;
-			            	for(int i=0; i<read_size; ++i){
-			            		if(dead_countdown>0){
-			            			dead_countdown--;		            			
-			            		}
-			            		if(click_countdown>0){
-			            			click_countdown--;
-			            			playback_data[i]=(short) (Math.exp((click_volume-1.0)*Math.log(10000))*((click_countdown/click_beep_divisor)%2 == 1 ? 32767:-32767));
-			            		}else{
-			            			playback_data[i]=0;
-			            		}
-			            		sample_update_counter++;
-			            		if(sample_update_counter>=samples_per_update){
-			            			for(int j=0;j<counters.length;++j){
-			            				counters[j].push(sample_count);			            				
-			            			}
-			            			sample_update_counter=0;
-			            			sample_count=0;
-			            			//Log.d(TAG, "got a sample");
-			            		}
-			            		double raw_v=data[i]*(1.0/32768.0);
-			            		running_avg=running_avg*(1.0-running_avg_const)+raw_v*running_avg_const;
-			            		double v=raw_v-running_avg;
-			            		if(v>threshold || v<-threshold){
-			            			if(dead_countdown<=0){
-			            				total_count++;
-			            				sample_count++;
-			            				dead_countdown=dead_time;
-			            				click_countdown=click_duration;
-			            			}		            			
-			            		}
+			            	if( ((AudioManager)getApplicationContext().getSystemService(Context.AUDIO_SERVICE)).isWiredHeadsetOn()){
+			            		if(!connected)changed=true;
+			            		connected=true;
+				            	int read_size=recorder.read(data,0,data_size);    	
+				            	
+				            	
+				            	int old_total_count=total_count;
+				            	for(int i=0; i<read_size; ++i){
+				            		if(dead_countdown>0){
+				            			dead_countdown--;		            			
+				            		}
+				            		if(click_countdown>0){
+				            			click_countdown--;
+				            			playback_data[i]=(short) (Math.exp((click_volume-1.0)*Math.log(10000))*((click_countdown/click_beep_divisor)%2 == 1 ? 32767:-32767));
+				            		}else{
+				            			playback_data[i]=0;
+				            		}
+				            		sample_update_counter++;
+				            		if(sample_update_counter>=samples_per_update){
+				            			for(int j=0;j<counters.length;++j){
+				            				counters[j].push(sample_count);			            				
+				            			}
+				            			sample_update_counter=0;
+				            			sample_count=0;
+				            			//Log.d(TAG, "got a sample");
+				            		}
+				            		double raw_v=data[i]*(1.0/32768.0);
+				            		running_avg=running_avg*(1.0-running_avg_const)+raw_v*running_avg_const;
+				            		double v=raw_v-running_avg;				            		
+				            		if(v>threshold || v<-threshold){
+				            			if(dead_countdown<=0){
+				            				total_count++;
+				            				sample_count++;
+				            				log_interval_click_count++;
+				            				dead_countdown=dead_time;
+				            				click_countdown=click_duration;
+				            				
+				            			}		            			
+				            		}
+				            		if(log_countdown<=0){
+				            			log_countdown=log_interval;
+				            			counts_log.add(log_interval_click_count);
+				            			log_interval_click_count=0;
+				            		}
+				            		log_countdown--;
+				            	}
+				            	if(old_total_count!=total_count){
+				            		changed=true;			            		
+				            	}
+				            	if(click_volume>0.001)player.write(playback_data,0,read_size);
+			            	}else{/// wired headset is not on
+			            		if(connected)changed=true;
+			            		connected=false;
+			            		Thread.sleep(500);
 			            	}
-			            	if(old_total_count!=total_count){
-			            		changed=true;			            		
-			            	}
-			            	if(click_volume>0.001)player.write(playback_data,0,read_size);
 				    	}
 			    	}else{
 				    	Log.d(TAG, "failed to initialize audio");

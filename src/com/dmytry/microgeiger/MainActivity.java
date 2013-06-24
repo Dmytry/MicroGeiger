@@ -131,11 +131,34 @@ public class MainActivity extends Activity {
     		p.setTextSize(30); 
     		int ypos=50;
     		int ydelta=60;
-    		canvas.drawText(Integer.toString(app.total_count)+" total", 10, ypos, p);
-    		ypos+=ydelta;    		
-    		for(int i=0;i<app.counters.length;++i){
-    			canvas.drawText(decim.format(app.counters[i].getValue())+" "+app.counters[i].name, 10, ypos, p);
-    			ypos+=ydelta;
+    		if(app.connected){
+	    		canvas.drawText(Integer.toString(app.total_count)+" total", 10, ypos, p);
+	    		ypos+=ydelta;    		
+	    		for(int i=0;i<app.counters.length;++i){
+	    			canvas.drawText(decim.format(app.counters[i].getValue())+" "+app.counters[i].name, 10, ypos, p);
+	    			ypos+=ydelta;
+	    		}
+	    		int log_total_samples=app.counts_log.size();
+	    		if(log_total_samples>0){
+		    		final float graph_x_scale=5.0f;
+		    		final float graph_y_scale=5.0f;
+		    		int graph_width=(int)(canvas.getWidth()/graph_x_scale);
+		    		int log_first_sample=log_total_samples-graph_width;
+		    		if(log_first_sample<0){
+		    			log_first_sample=0;
+		    			graph_width=log_total_samples;
+		    		}
+		    		int h=canvas.getHeight();
+		    		float prev_y=app.counts_log.get(log_first_sample);
+		    		for(int i=1; i<graph_width;++i){
+		    			//canvas.drawRect(i,h,i+1,h-app.counts_log.get(i+log_first_sample), p);
+		    			float y=app.counts_log.get(i+log_first_sample);	    			
+		    			canvas.drawLine((i-1)*graph_x_scale, h-prev_y*graph_y_scale, i*graph_x_scale, h-y*graph_y_scale, p);
+		    			prev_y=y;
+		    		}
+	    		}
+    		}else{
+    			canvas.drawText("MicroGeiger not connected.", 10, ypos, p);
     		}
     	}
 
